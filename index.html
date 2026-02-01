@@ -74,13 +74,13 @@ function render() {
     } else if (state.view === 'menu') {
         const hasHistory = state.user && Object.keys(state.user.stats || {}).length > 0;
         app.innerHTML = `<h2>こんにちは、${state.user ? state.user.name : 'ゲスト'}さん</h2>
-            <div class="mode-item"><button class="btn btn-main" onclick="initQuiz('normal')">通常モード (全10問)</button></div>
+            <div class="mode-item"><button class="btn btn-main" onclick="initQuiz('normal')">通常モード (全10問)</button><div class="mode-hint" onclick="openDesc('通常モード','全50問からランダムに10問出題。')">?</div></div>
             ${state.user ? `
-            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('untested')">未挑戦モード</button><div class="mode-hint" onclick="openDesc('未挑戦モード','まだ一度も解いたことがない問題のみ出題します。')">?</div></div>
+            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('untested')">未挑戦モード</button><div class="mode-hint" onclick="openDesc('未挑戦モード','まだ一度も解いたことがない問題のみ。10問未満ならある分だけ出題。')">?</div></div>
             ` : ''}
             ${hasHistory ? `
-            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('weak')">苦手克服モード</button></div>
-            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('efficient')">効率学習モード</button></div>` : ''}
+            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('weak')">苦手克服モード</button><div class="mode-hint" onclick="openDesc('苦手克服モード','正答率が低い順に10問出題。')">?</div></div>
+            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('efficient')">効率学習モード</button><div class="mode-hint" onclick="openDesc('効率学習モード','正答率80%未満の習得していない問題のみ。')">?</div></div>` : ''}
             <button class="btn btn-exit" onclick="location.reload()">ログアウト / 終了</button>`;
     } else if (state.view === 'quiz') {
         const item = state.currentQuiz[state.index];
@@ -99,10 +99,8 @@ function render() {
 function initQuiz(mode) {
     let pool = [...quizData];
     let limit = 10;
-
     if (state.user) {
         if (mode === 'untested') {
-            // 出題回数(t)が0回、またはデータが存在しないものを抽出
             pool = pool.filter(item => !state.user.stats[item.id] || state.user.stats[item.id].t === 0);
             if (pool.length === 0) { alert("未挑戦の問題はありません！"); return; }
         } else if (mode === 'weak') {
@@ -112,8 +110,6 @@ function initQuiz(mode) {
             if(f.length >= 5) pool = f;
         }
     }
-    
-    // 未挑戦モードなど、プールが10問以下の場合はその全数、それ以外は10問
     state.currentQuiz = pool.sort(() => 0.5 - Math.random()).slice(0, Math.min(pool.length, limit)).map(item => {
         const fixedChoices = item.a.map(correct => {
             let list = [correct];
@@ -125,7 +121,6 @@ function initQuiz(mode) {
         });
         return { ...item, fixedChoices };
     });
-
     state.index = 0; state.userChoices = {}; state.view = 'quiz'; render();
 }
 
