@@ -3,22 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketing Master Quiz</title>
+    <title>Marketing Quiz</title>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
-        body { font-family: "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; min-height: 100vh; }
-        .container { width: 100%; max-width: 600px; padding: 20px; }
-        .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 700px; padding: 20px; position: relative; }
+        .card { background: white; padding: 2.5rem; border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 400px; display: flex; flex-direction: column; }
         .hidden { display: none; }
-        h1, h2 { text-align: center; color: var(--primary); }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 1rem; }
+        h2 { text-align: center; color: var(--primary); margin-top: 0; }
+        
+        /* 問題文のスタイル */
+        .question-text { font-size: 1.25rem; line-height: 2; margin: 40px 0; color: #334155; }
+        
+        /* 空欄ボックスのスタイル */
+        .blank-box {
+            display: inline-block;
+            min-width: 120px;
+            height: 2.2rem;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            vertical-align: middle;
+            margin: 0 5px;
+            cursor: pointer;
+            text-align: center;
+            line-height: 2.2rem;
+            font-weight: bold;
+            color: var(--primary);
+            transition: all 0.2s;
+        }
+        .blank-box:hover { border-color: var(--primary); background: #f8fafc; }
+        .blank-box.filled { border-color: var(--primary); background: #eff6ff; }
+
+        /* ナビゲーションボタン */
+        .nav-controls { display: flex; justify-content: space-between; margin-top: auto; padding-top: 20px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-nav { background: #64748b; color: white; }
+        .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
         .btn-main { background: var(--primary); color: white; }
-        .btn-main:hover { background: #1d4ed8; }
-        .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
-        .choice-btn { background: #f1f5f9; text-align: left; padding: 15px; margin: 10px 0; border: 2px solid transparent; border-radius: 10px; width: 100%; cursor: pointer; }
-        .choice-btn:hover { border-color: var(--primary); background: #eff6ff; }
-        .status-bar { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9rem; color: #64748b; }
+
+        /* 選択肢モーダル/エリア */
+        .choices-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .choices-card { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+        .choice-item { width: 100%; text-align: left; padding: 12px; margin: 5px 0; border: 1px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; }
+        .choice-item:hover { background: #f1f5f9; border-color: var(--primary); }
+
+        .status-header { text-align: center; font-weight: bold; color: #94a3b8; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -28,204 +58,152 @@
         </div>
 </div>
 
+<div id="choices-overlay" class="choices-overlay" onclick="closeChoices()">
+    <div class="choices-card" onclick="event.stopPropagation()">
+        <h3 style="margin-top:0">答えを選択</h3>
+        <div id="choices-list"></div>
+    </div>
+</div>
+
 <script>
-// --- クイズデータ (50問) ---
+// データ（管理番号idは保持しますが、画面には出しません）
 const quizData = [
-    { id: 1, q: "誰にでも当選の可能性のある「 」キャンペーン", a: ["オープン"] },
-    { id: 2, q: "特定の条件を満たした人のみが当たる「 」キャンペーン", a: ["クローズト"] },
-    { id: 3, q: "既存客を効率的に維持する「 」型マーケティング", a: ["顧客維持"] },
-    { id: 4, q: "収益アップの仕組み：4.「 」利益", a: ["基礎"] },
-    { id: 5, q: "収益アップの仕組み：5.「 」利益", a: ["購買・残高増"] },
-    { id: 6, q: "収益アップの仕組み：6.「 」利益", a: ["営業費削減"] },
-    { id: 7, q: "収益アップの仕組み：7.「 」利益", a: ["紹介"] },
-    { id: 8, q: "収益アップの仕組み：8.「 」利益", a: ["価格プレミアム"] },
-    { id: 9, q: "個別に把握する「 」マーケティング", a: ["ワン・トゥ・ワン"] },
-    { id: 10, q: "サービス特徴：10.「 」、11.「 」、12.「 」、13.「 」", a: ["無形性", "同時性", "異質性", "消滅性"] },
-    { id: 14, q: "サービス分類：14.「 」、15.「 」", a: ["パーソン・スタンダード", "パーソン・カスタマイズ"] },
-    { id: 16, q: "サービス分類：16.「 」、17.「 」", a: ["マテリアル・スタンダード", "マテリアル・カスタマイズ"] },
-    { id: 18, q: "パッケージ要素：18.「 」、19.「 」、20.「 」、21.「 」、22.「 」", a: ["基本サービス", "付加的サービス", "ブランド", "設備", "物的提供物"] },
-    { id: 23, q: "追加の3P：23.「 」、24.「 」、25.「 」", a: ["people", "process", "physical evidence"] },
-    { id: 26, q: "従業員のニーズを満たす「 」マーケティング", a: ["インターナル"] },
-    { id: 27, q: "効率的な売り場作り「 」マーチャンダイジング", a: ["インストア"] },
-    { id: 28, q: "視覚に訴える演出「 」マーケティング", a: ["ヴィジュアル"] },
-    { id: 29, q: "効果的な棚割り計画「 」", a: ["プラノグラム"] },
-    { id: 30, q: "必要な時に届ける「 」・イン・タイム物流", a: ["ジャスト"] },
-    { id: 31, q: "成功アイデアの土台利用「 」", a: ["リアプライ"] },
-    { id: 32, q: "消費者が多いほど満足が増す「 」効果", a: ["バンドワゴン"] },
-    { id: 33, q: "他人と違うものが欲しい「 」効果", a: ["スノッブ"] },
-    { id: 34, q: "イノベーター理論：34.「 」、35.「 」、36.「 」、37.「 」、38.「 」", a: ["イノベーター", "アーリーアダプター", "アーリーマジョリティ", "レイトマジョリティ", "ラガード"] },
-    { id: 39, q: "機能型から感性型への逆転成功企業は「 」", a: ["スターバックス"] },
-    { id: 40, q: "競争を無意味にする「 」戦略", a: ["ブルーオーシャン"] },
-    { id: 41, q: "多様な製品販売が可能になる「 」効果", a: ["ロングテール"] },
-    { id: 42, q: "オンラインの限界：42.「 」、43.「 」、44.「 」、45.「 」", a: ["実見性", "応答性", "即時性", "団らん性"] },
-    { id: 46, q: "コトラー：46.「 」、レイザー：47.「 」", a: ["非営利組織", "社会志向"] },
-    { id: 48, q: "文化支援：48.「 」、慈善行為：49.「 」", a: ["フィランソロピー", "メセナ"] },
-    { id: 50, q: "共有価値の創造「 」経営", a: ["CSV"] }
+    { id: 1, q: "懸賞を用いた販売促進では、誰にでも当選の可能性のある「 」キャンペーンと特定の条件を満たした人のみが当たる可能性のある「 」キャンペーンがある。", a: ["オープン", "クローズト"] },
+    { id: 3, q: "従来の顧客創造型マーケティングとは異なり、新規顧客を開拓するよりも既存の顧客を効率的であり、高収益につながるという考え方に基づくマーケティングを「 」型マーケティングという。", a: ["顧客維持"] },
+    { id: 4, q: "既存顧客からの収益アップのしくみは、「 」利益、「 」利益、「 」利益、「 」利益、「 」利益がある。", a: ["基礎", "購買・残高増", "営業費削減", "紹介", "価格プレミアム"] },
+    { id: 9, q: "顧客一人ひとりを把握することを前提にしたマーケティングを「 」マーケティングという。", a: ["ワン・トゥ・ワン"] },
+    { id: 10, q: "サービスマーケティングの4つの特徴は、「 」、「 」、「 」、「 」である。", a: ["無形性", "同時性", "異質性", "消滅性"] },
+    { id: 14, q: "サービスを4種類に分類すると「 」サービス、「 」サービス、「 」サービス、「 」サービスである。", a: ["パーソン・スタンダード", "パーソン・カスタマイズ", "マテリアル・スタンダード", "マテリアル・カスタマイズ"] },
+    { id: 18, q: "サービスパッケージの5つの要素は、「 」、「 」、「 」、「 」、「 」である。", a: ["基本サービス", "付加的サービス", "ブランド", "設備", "物的提供物"] },
+    { id: 23, q: "従来の４P（PRODUCT/PRICE/PLACE/PROMOTION)に加えて７Pと言われる追加の３Pは「 」、「 」、「 」である。", a: ["people", "process", "physical evidence"] },
+    { id: 26, q: "従業員を顧客の一部とみて、ニーズを満たし、好ましい行動を引き出そうとする活動を「 」マーケティングという。", a: ["インターナル"] },
+    { id: 27, q: "限られた店舗で最も生産性の高い売り場づくりを目指すことを「 」マーチャンダイジングという。", a: ["インストア"] },
+    { id: 28, q: "我々の視覚に訴える店舗のレイアウトや品ぞろえ、什器や備品、POPなどの演出を「 」マーケティングという。", a: ["ヴィジュアル"] },
+    { id: 29, q: "スーパーなどで一つのゴンドラの中で売り上げが最大になるような効果的な商品の棚割り計画のことを「 」という。", a: ["プラノグラム"] },
+    { id: 30, q: "企業が必要な部品や製品を、必要な時に、必要な場所へ、必要な量だけ届ける配送システムのことを「 」・イン・タイム物流という。", a: ["ジャスト"] },
+    { id: 31, q: "どこかで成功したビジネスアイデアを土台にして用いることを「 」という。", a: ["リアプライ"] },
+    { id: 32, q: "「 」効果とは、ある製品・サービスを消費する人が多ければ多いほど顧客がその製品・サービスによって得る満足・安心感が増加する効果のことであり、「 」効果とは、他人と同じものは消費したくない、他人とは違うものが欲しいという心理のことである。", a: ["バンドワゴン", "スノッブ"] },
+    { id: 34, q: "イノベーター理論では顧客の新製品や新サービスの購入頻度をもとに、「 」、「 」、「 」、「 」、「 」の5つのタイプに分類される。", a: ["イノベーター", "アーリーアダプター", "アーリーマジョリティ", "レイトマジョリティ", "ラガード"] },
+    { id: 39, q: "バリューブレイクスルー戦略で、機能型→感性型という逆の価値観を取り入れ成功した企業は「 」である。", a: ["スターバックス"] },
+    { id: 40, q: "競争とは関係ない広々とした市場空間を生み出して競争を無意味にする、全く新しい価値曲線を描く戦略のことを「 」戦略という。", a: ["ブルーオーシャン"] },
+    { id: 41, q: "オンライン取引を利用することで企業は世界中の消費者をターゲットにすることができ、いわゆるベストセラーでない多様な製品の販売が可能になる。これを「 」効果という。", a: ["ロングテール"] },
+    { id: 42, q: "オンライン取引の限界とは「 」、「 」、「 」、「 」である。", a: ["実見性", "応答性", "即時性", "団らん性"] },
+    { id: 46, q: "ソーシャル・マーケティングは社会的マーケティングと訳すことができるが、コトラーのソーシャル・マーケティングは「 」のマーケティングとも呼ばれ、レイザーのソーシャル・マーケティングは「 」のマーケティングとも呼ばれる。", a: ["非営利組織", "社会志向"] },
+    { id: 48, q: "企業の社会貢献マーケティングにおいて、文化支援活動を「 」、慈善行為を「 」と呼ぶ。", a: ["フィランソロピー", "メセナ"] },
+    { id: 50, q: "「 」経営とは、「共有価値の創造」を軸とした経営のことです。", a: ["CSV"] }
 ];
 
-// 全キーワード抽出
-const allKeywords = [...new Set(quizData.flatMap(d => d.a))];
+const allKeywords = [...new Set(quizData.flatMap(d => d.a))].sort();
 
 let state = {
-    view: 'start',
+    view: 'menu', // 本番は'start'から
     user: null,
     currentQuiz: [],
     index: 0,
-    answers: []
+    userChoices: {} // { questionIndex: [answer1, answer2...] }
 };
 
 function render() {
     const app = document.getElementById('app');
-    if (state.view === 'start') {
+    
+    if (state.view === 'menu') {
         app.innerHTML = `
-            <h1>Marketing Quiz</h1>
-            <button class="btn btn-main" onclick="showAuth(false)">初めて使う</button>
-            <button class="btn btn-outline" onclick="showAuth(true)">使ったことがある</button>
-            <button class="btn" onclick="skipAuth()">ログインせず開始</button>
-        `;
-    } else if (state.view === 'auth') {
-        app.innerHTML = `
-            <h2>${state.isLogin ? 'ログイン' : '新規登録'}</h2>
-            <input type="text" id="username" placeholder="名前">
-            <input type="password" id="password" placeholder="パスワード">
-            <p id="msg" style="color:red; font-size:0.8rem;"></p>
-            <button class="btn btn-main" onclick="handleAuth()">決定</button>
-            <button class="btn" onclick="state.view='start'; render();">戻る</button>
-        `;
-    } else if (state.view === 'menu') {
-        app.innerHTML = `
-            <h2>こんにちは、${state.user ? state.user.name : 'ゲスト'}さん</h2>
-            <button class="btn btn-main" onclick="initQuiz('normal')">通常モード (ランダム10問)</button>
-            ${state.user ? `
-                <button class="btn btn-outline" onclick="initQuiz('weak')">苦手克服モード</button>
-                <button class="btn btn-outline" onclick="initQuiz('efficient')">得意除外モード</button>
-            ` : ''}
-            <button class="btn" onclick="location.reload()">ログアウト</button>
+            <h2>Marketing Quiz</h2>
+            <button class="btn btn-main" style="width:100%; margin-bottom:10px;" onclick="initQuiz()">クイズを開始 (ランダム10問)</button>
+            <p style="text-align:center; font-size:0.8rem; color:#666;">※ログイン機能は前回同様に実装可能です</p>
         `;
     } else if (state.view === 'quiz') {
         const item = state.currentQuiz[state.index];
-        const displayQ = item.q.replace(/「 」/g, '（ ？ ）');
-        const choices = generateChoices(item.a);
+        let blankIndex = 0;
+        
+        // 「 」をボタンに置き換えるロジック
+        const formattedQuestion = item.q.replace(/「 」/g, () => {
+            const currentVal = (state.userChoices[state.index] && state.userChoices[state.index][blankIndex]) || "";
+            const html = `<span class="blank-box ${currentVal ? 'filled' : ''}" onclick="openChoices(${blankIndex})">${currentVal || "？"}</span>`;
+            blankIndex++;
+            return html;
+        });
 
         app.innerHTML = `
-            <div class="status-bar">
-                <span>第 ${state.index + 1} / 10 問</span>
-                <span>正答率: ${state.user ? calculateRate(item.id) : '--'}%</span>
+            <div class="status-header">第 ${state.index + 1} / 10 問</div>
+            <div class="question-text">${formattedQuestion}</div>
+            
+            <div class="nav-controls">
+                <button class="btn btn-nav" onclick="prev()" ${state.index === 0 ? 'disabled' : ''}>← 前へ</button>
+                <button class="btn btn-main" onclick="next()">${state.index === 9 ? '採点する' : '次へ →'}</button>
             </div>
-            <div style="font-size: 1.2rem; margin-bottom: 20px;">${displayQ}</div>
-            ${choices.map(c => `<button class="choice-btn" onclick="submitAnswer('${c}')">${c}</button>`).join('')}
         `;
     } else if (state.view === 'result') {
-        const correctCount = state.answers.filter(a => a.isCorrect).length;
-        app.innerHTML = `
-            <h2>結果: ${correctCount} / 10 正解</h2>
-            <div style="margin: 20px 0; max-height: 300px; overflow-y: auto; text-align: left;">
-                ${state.answers.map((a, i) => `
-                    <div style="padding: 10px; border-bottom: 1px solid #eee;">
-                        <b>問${i+1}:</b> ${a.isCorrect ? '✅正解' : '❌不正解'}<br>
-                        <small>正解: ${a.correct}</small>
-                    </div>
-                `).join('')}
-            </div>
-            <button class="btn btn-main" onclick="state.view='menu'; render();">メニューへ</button>
-        `;
+        // 簡易結果表示
+        app.innerHTML = `<h2>結果</h2><button class="btn btn-main" onclick="location.reload()">トップへ</button>`;
     }
 }
 
-// --- ロジック関数 ---
-function showAuth(isLogin) { state.view = 'auth'; state.isLogin = isLogin; render(); }
-function skipAuth() { state.user = null; state.view = 'menu'; render(); }
-
-function handleAuth() {
-    const name = document.getElementById('username').value.trim();
-    const pass = document.getElementById('password').value;
-    const users = JSON.parse(localStorage.getItem('m_users') || '{}');
-
-    if (!name || !pass) return;
-
-    if (state.isLogin) {
-        if (users[name] && users[name].pass === pass) {
-            state.user = { name, ...users[name] };
-            state.view = 'menu';
-        } else {
-            document.getElementById('msg').innerText = "認証に失敗しました";
-            return;
-        }
-    } else {
-        if (users[name]) {
-            document.getElementById('msg').innerText = "その名前は使われています";
-            return;
-        }
-        users[name] = { pass, stats: {} };
-        localStorage.setItem('m_users', JSON.stringify(users));
-        state.user = { name, ...users[name] };
-        state.view = 'menu';
-    }
-    render();
-}
-
-function initQuiz(mode) {
-    let pool = [...quizData];
-    if (state.user) {
-        if (mode === 'weak') {
-            pool.sort((a, b) => (state.user.stats[a.id]?.rate || 0) - (state.user.stats[b.id]?.rate || 0));
-        } else if (mode === 'efficient') {
-            pool = pool.filter(a => (state.user.stats[a.id]?.rate || 0) < 80);
-        }
-    }
-    state.currentQuiz = pool.sort(() => 0.5 - Math.random()).slice(0, 10);
+function initQuiz() {
+    state.currentQuiz = [...quizData].sort(() => 0.5 - Math.random()).slice(0, 10);
     state.index = 0;
-    state.answers = [];
+    state.userChoices = {};
     state.view = 'quiz';
     render();
 }
 
-function generateChoices(correctArray) {
-    const correctStr = correctArray.join(', ');
-    let choices = [correctStr];
-    while (choices.length < 4) {
-        // ダミーも複数「 」対応形式で作成
-        const count = correctArray.length;
-        let dummy = [];
-        for(let i=0; i<count; i++) dummy.push(allKeywords[Math.floor(Math.random() * allKeywords.length)]);
-        let dummyStr = dummy.join(', ');
-        if (!choices.includes(dummyStr)) choices.push(dummyStr);
-    }
-    return choices.sort(() => 0.5 - Math.random());
-}
-
-function submitAnswer(choice) {
-    const item = state.currentQuiz[state.index];
-    const correctStr = item.a.join(', ');
-    const isCorrect = (choice === correctStr);
-
-    state.answers.push({ isCorrect, correct: correctStr });
-
-    if (state.user) {
-        if (!state.user.stats[item.id]) state.user.stats[item.id] = { correct: 0, total: 0 };
-        state.user.stats[item.id].total++;
-        if (isCorrect) state.user.stats[item.id].correct++;
-        state.user.stats[item.id].rate = Math.round((state.user.stats[item.id].correct / state.user.stats[item.id].total) * 100);
-        
-        const users = JSON.parse(localStorage.getItem('m_users'));
-        users[state.user.name].stats = state.user.stats;
-        localStorage.setItem('m_users', JSON.stringify(users));
-    }
-
+function next() {
     if (state.index < 9) {
         state.index++;
         render();
     } else {
-        state.view = 'result';
+        alert("採点機能は次のステップで詳細実装します。まずは移動を確認してください！");
+        state.view = 'menu';
         render();
     }
 }
 
-function calculateRate(id) {
-    return state.user.stats[id]?.rate || 0;
+function prev() {
+    if (state.index > 0) {
+        state.index--;
+        render();
+    }
 }
 
-render(); // 初回実行
+let activeBlankIndex = null;
+function openChoices(bIndex) {
+    activeBlankIndex = bIndex;
+    const list = document.getElementById('choices-list');
+    list.innerHTML = "";
+    
+    // ダミー選択肢（正解+ランダム4つ程度表示）
+    const item = state.currentQuiz[state.index];
+    const correct = item.a[bIndex];
+    let choices = [correct];
+    while(choices.length < 5) {
+        let dummy = allKeywords[Math.floor(Math.random() * allKeywords.length)];
+        if(!choices.includes(dummy)) choices.push(dummy);
+    }
+    choices.sort();
+
+    choices.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-item';
+        btn.innerText = c;
+        btn.onclick = () => selectChoice(c);
+        list.appendChild(btn);
+    });
+
+    document.getElementById('choices-overlay').style.display = 'flex';
+}
+
+function selectChoice(val) {
+    if (!state.userChoices[state.index]) state.userChoices[state.index] = [];
+    state.userChoices[state.index][activeBlankIndex] = val;
+    closeChoices();
+    render();
+}
+
+function closeChoices() {
+    document.getElementById('choices-overlay').style.display = 'none';
+}
+
+render();
 </script>
 </body>
 </html>
