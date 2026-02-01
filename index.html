@@ -3,52 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketing Quiz</title>
+    <title>Marketing Quiz Master</title>
     <style>
-        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
+        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; --success: #22c55e; --error: #ef4444; }
         body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; min-height: 100vh; }
-        .container { width: 100%; max-width: 700px; padding: 20px; position: relative; }
-        .card { background: white; padding: 2.5rem; border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 400px; display: flex; flex-direction: column; }
-        .hidden { display: none; }
-        h2 { text-align: center; color: var(--primary); margin-top: 0; }
+        .container { width: 100%; max-width: 700px; padding: 20px; }
+        .card { background: white; padding: 2rem; border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 450px; display: flex; flex-direction: column; position: relative; }
+        .hidden { display: none !important; }
         
-        /* 問題文のスタイル */
-        .question-text { font-size: 1.25rem; line-height: 2; margin: 40px 0; color: #334155; }
-        
-        /* 空欄ボックスのスタイル */
+        /* フォーム系 */
+        h2 { text-align: center; color: var(--primary); margin-bottom: 1.5rem; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; margin: 5px 0; width: 100%; }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-nav { background: #64748b; color: white; width: auto; min-width: 100px; }
+        .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* 問題文とボックス */
+        .question-text { font-size: 1.2rem; line-height: 2.2; margin: 30px 0; color: #334155; }
         .blank-box {
-            display: inline-block;
-            min-width: 120px;
-            height: 2.2rem;
-            background: white;
-            border: 2px solid #cbd5e1;
-            border-radius: 6px;
-            vertical-align: middle;
-            margin: 0 5px;
-            cursor: pointer;
-            text-align: center;
-            line-height: 2.2rem;
-            font-weight: bold;
-            color: var(--primary);
-            transition: all 0.2s;
+            display: inline-block; min-width: 100px; height: 2.2rem; background: #fff;
+            border: 2px solid #cbd5e1; border-radius: 6px; vertical-align: middle;
+            margin: 0 4px; cursor: pointer; text-align: center; line-height: 2.2rem;
+            font-weight: bold; color: var(--primary); transition: 0.2s;
         }
-        .blank-box:hover { border-color: var(--primary); background: #f8fafc; }
         .blank-box.filled { border-color: var(--primary); background: #eff6ff; }
 
-        /* ナビゲーションボタン */
+        /* ナビゲーション */
         .nav-controls { display: flex; justify-content: space-between; margin-top: auto; padding-top: 20px; }
-        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-nav { background: #64748b; color: white; }
-        .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
-        .btn-main { background: var(--primary); color: white; }
+        .status-header { display: flex; justify-content: space-between; font-size: 0.9rem; color: #94a3b8; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
 
-        /* 選択肢モーダル/エリア */
-        .choices-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .choices-card { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
-        .choice-item { width: 100%; text-align: left; padding: 12px; margin: 5px 0; border: 1px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; }
-        .choice-item:hover { background: #f1f5f9; border-color: var(--primary); }
-
-        .status-header { text-align: center; font-weight: bold; color: #94a3b8; margin-bottom: 10px; }
+        /* 選択肢モーダル */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; max-height: 70vh; overflow-y: auto; }
+        .choice-item { width: 100%; text-align: left; padding: 12px; margin: 5px 0; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; cursor: pointer; }
+        .choice-item:hover { background: #eff6ff; border-color: var(--primary); }
     </style>
 </head>
 <body>
@@ -58,15 +48,15 @@
         </div>
 </div>
 
-<div id="choices-overlay" class="choices-overlay" onclick="closeChoices()">
-    <div class="choices-card" onclick="event.stopPropagation()">
-        <h3 style="margin-top:0">答えを選択</h3>
+<div id="overlay" class="overlay" onclick="closeChoices()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h3 style="margin-top:0">回答を選択</h3>
         <div id="choices-list"></div>
     </div>
 </div>
 
 <script>
-// データ（管理番号idは保持しますが、画面には出しません）
+// --- データ一式（前回提示分） ---
 const quizData = [
     { id: 1, q: "懸賞を用いた販売促進では、誰にでも当選の可能性のある「 」キャンペーンと特定の条件を満たした人のみが当たる可能性のある「 」キャンペーンがある。", a: ["オープン", "クローズト"] },
     { id: 3, q: "従来の顧客創造型マーケティングとは異なり、新規顧客を開拓するよりも既存の顧客を効率的であり、高収益につながるという考え方に基づくマーケティングを「 」型マーケティングという。", a: ["顧客維持"] },
@@ -96,51 +86,125 @@ const quizData = [
 const allKeywords = [...new Set(quizData.flatMap(d => d.a))].sort();
 
 let state = {
-    view: 'menu', // 本番は'start'から
+    view: 'start',
     user: null,
     currentQuiz: [],
     index: 0,
-    userChoices: {} // { questionIndex: [answer1, answer2...] }
+    userChoices: {}, // { quizIndex: [ans0, ans1...] }
+    isLoginMode: false
 };
 
+// --- レンダリングエンジン ---
 function render() {
     const app = document.getElementById('app');
     
-    if (state.view === 'menu') {
+    if (state.view === 'start') {
         app.innerHTML = `
             <h2>Marketing Quiz</h2>
-            <button class="btn btn-main" style="width:100%; margin-bottom:10px;" onclick="initQuiz()">クイズを開始 (ランダム10問)</button>
-            <p style="text-align:center; font-size:0.8rem; color:#666;">※ログイン機能は前回同様に実装可能です</p>
+            <button class="btn btn-main" onclick="showAuth(false)">初めて使う</button>
+            <button class="btn btn-outline" onclick="showAuth(true)">使ったことがある</button>
+            <div style="text-align:center; margin-top:15px;">
+                <a href="#" onclick="skipAuth()" style="color:#64748b; font-size:0.9rem;">ログインせずに開始</a>
+            </div>
+        `;
+    } else if (state.view === 'auth') {
+        app.innerHTML = `
+            <h2>${state.isLoginMode ? 'ログイン' : '新規登録'}</h2>
+            <input type="text" id="username" placeholder="名前">
+            <input type="password" id="password" placeholder="パスワード">
+            <div id="auth-msg" style="color:var(--error); font-size:0.8rem; height:20px; text-align:center;"></div>
+            <button class="btn btn-main" onclick="handleAuth()">決定</button>
+            <button class="btn" onclick="state.view='start'; render();">戻る</button>
+        `;
+    } else if (state.view === 'menu') {
+        app.innerHTML = `
+            <h2>こんにちは、${state.user ? state.user.name : 'ゲスト'}さん</h2>
+            <button class="btn btn-main" onclick="initQuiz('normal')">通常モード (ランダム10問)</button>
+            ${state.user ? `
+                <button class="btn btn-outline" onclick="initQuiz('weak')">苦手克服モード</button>
+                <button class="btn btn-outline" onclick="initQuiz('efficient')">効率学習モード (正解率80%未満)</button>
+            ` : ''}
+            <button class="btn" onclick="location.reload()" style="margin-top:20px; color:var(--error);">ログアウト / 終了</button>
         `;
     } else if (state.view === 'quiz') {
         const item = state.currentQuiz[state.index];
-        let blankIndex = 0;
-        
-        // 「 」をボタンに置き換えるロジック
-        const formattedQuestion = item.q.replace(/「 」/g, () => {
-            const currentVal = (state.userChoices[state.index] && state.userChoices[state.index][blankIndex]) || "";
-            const html = `<span class="blank-box ${currentVal ? 'filled' : ''}" onclick="openChoices(${blankIndex})">${currentVal || "？"}</span>`;
-            blankIndex++;
-            return html;
+        let bIdx = 0;
+        const formattedQ = item.q.replace(/「 」/g, () => {
+            const val = (state.userChoices[state.index] && state.userChoices[state.index][bIdx]) || "";
+            const h = `<span class="blank-box ${val ? 'filled' : ''}" onclick="openChoices(${bIdx})">${val || "?"}</span>`;
+            bIdx++; return h;
         });
 
         app.innerHTML = `
-            <div class="status-header">第 ${state.index + 1} / 10 問</div>
-            <div class="question-text">${formattedQuestion}</div>
-            
+            <div class="status-header">
+                <span>第 ${state.index + 1} / 10 問</span>
+                <span>${state.user ? '正答率:' + getRate(item.id) + '%' : ''}</span>
+            </div>
+            <div class="question-text">${formattedQ}</div>
             <div class="nav-controls">
                 <button class="btn btn-nav" onclick="prev()" ${state.index === 0 ? 'disabled' : ''}>← 前へ</button>
-                <button class="btn btn-main" onclick="next()">${state.index === 9 ? '採点する' : '次へ →'}</button>
+                <button class="btn btn-main btn-nav" onclick="next()">${state.index === 9 ? '採点する' : '次へ →'}</button>
             </div>
         `;
     } else if (state.view === 'result') {
-        // 簡易結果表示
-        app.innerHTML = `<h2>結果</h2><button class="btn btn-main" onclick="location.reload()">トップへ</button>`;
+        const results = calculateScore();
+        app.innerHTML = `
+            <h2>結果: ${results.score} / 10</h2>
+            <div style="overflow-y:auto; flex:1; margin-bottom:15px;">
+                ${results.details.map((d, i) => `
+                    <div style="padding:10px; border-bottom:1px solid #eee; font-size:0.9rem;">
+                        <b>問${i+1}:</b> ${d.isCorrect ? '✅' : '❌'}<br>
+                        <small style="color:#64748b">正解: ${d.correctAnswers.join(' / ')}</small>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn btn-main" onclick="state.view='menu'; render();">メニューに戻る</button>
+        `;
     }
 }
 
-function initQuiz() {
-    state.currentQuiz = [...quizData].sort(() => 0.5 - Math.random()).slice(0, 10);
+// --- ロジック系 ---
+function showAuth(isLogin) { state.view = 'auth'; state.isLoginMode = isLogin; render(); }
+function skipAuth() { state.user = null; state.view = 'menu'; render(); }
+
+function handleAuth() {
+    const name = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value;
+    const msg = document.getElementById('auth-msg');
+    if(!name || !pass) return;
+
+    let users = JSON.parse(localStorage.getItem('quiz_users') || '{}');
+
+    if (state.isLoginMode) {
+        if (users[name] && users[name].pass === pass) {
+            state.user = { name, ...users[name] };
+            state.view = 'menu';
+        } else {
+            msg.innerText = "名前またはパスワードが違います"; return;
+        }
+    } else {
+        if (users[name]) {
+            msg.innerText = "その名前は既に使われています"; return;
+        }
+        users[name] = { pass, stats: {} };
+        localStorage.setItem('quiz_users', JSON.stringify(users));
+        state.user = { name, ...users[name] };
+        state.view = 'menu';
+    }
+    render();
+}
+
+function initQuiz(mode) {
+    let pool = [...quizData];
+    if (state.user) {
+        if (mode === 'weak') {
+            pool.sort((a,b) => getRate(a.id) - getRate(b.id));
+        } else if (mode === 'efficient') {
+            pool = pool.filter(a => getRate(a.id) < 80);
+            if(pool.length < 10) pool = [...quizData].sort(() => 0.5 - Math.random());
+        }
+    }
+    state.currentQuiz = pool.sort(() => 0.5 - Math.random()).slice(0, 10);
     state.index = 0;
     state.userChoices = {};
     state.view = 'quiz';
@@ -148,59 +212,66 @@ function initQuiz() {
 }
 
 function next() {
-    if (state.index < 9) {
-        state.index++;
-        render();
-    } else {
-        alert("採点機能は次のステップで詳細実装します。まずは移動を確認してください！");
-        state.view = 'menu';
-        render();
-    }
+    if (state.index < 9) { state.index++; render(); } 
+    else { state.view = 'result'; render(); }
 }
 
-function prev() {
-    if (state.index > 0) {
-        state.index--;
-        render();
-    }
-}
+function prev() { if (state.index > 0) { state.index--; render(); } }
 
-let activeBlankIndex = null;
-function openChoices(bIndex) {
-    activeBlankIndex = bIndex;
+let activeBIdx = null;
+function openChoices(idx) {
+    activeBIdx = idx;
     const list = document.getElementById('choices-list');
     list.innerHTML = "";
     
-    // ダミー選択肢（正解+ランダム4つ程度表示）
-    const item = state.currentQuiz[state.index];
-    const correct = item.a[bIndex];
+    const correct = state.currentQuiz[state.index].a[idx];
     let choices = [correct];
-    while(choices.length < 5) {
+    while(choices.length < 6) {
         let dummy = allKeywords[Math.floor(Math.random() * allKeywords.length)];
         if(!choices.includes(dummy)) choices.push(dummy);
     }
-    choices.sort();
-
-    choices.forEach(c => {
-        const btn = document.createElement('button');
-        btn.className = 'choice-item';
-        btn.innerText = c;
-        btn.onclick = () => selectChoice(c);
-        list.appendChild(btn);
+    choices.sort().forEach(c => {
+        const b = document.createElement('button');
+        b.className = 'choice-item';
+        b.innerText = c;
+        b.onclick = () => {
+            if(!state.userChoices[state.index]) state.userChoices[state.index] = [];
+            state.userChoices[state.index][activeBIdx] = c;
+            document.getElementById('overlay').style.display = 'none';
+            render();
+        };
+        list.appendChild(b);
     });
-
-    document.getElementById('choices-overlay').style.display = 'flex';
+    document.getElementById('overlay').style.display = 'flex';
 }
 
-function selectChoice(val) {
-    if (!state.userChoices[state.index]) state.userChoices[state.index] = [];
-    state.userChoices[state.index][activeBlankIndex] = val;
-    closeChoices();
-    render();
+function closeChoices() { document.getElementById('overlay').style.display = 'none'; }
+
+function calculateScore() {
+    let score = 0;
+    const details = state.currentQuiz.map((item, qIdx) => {
+        const uAns = state.userChoices[qIdx] || [];
+        const isCorrect = item.a.every((val, i) => val === uAns[i]);
+        if (isCorrect) score++;
+        
+        if (state.user) {
+            if (!state.user.stats[item.id]) state.user.stats[item.id] = { c: 0, t: 0 };
+            state.user.stats[item.id].t++;
+            if (isCorrect) state.user.stats[item.id].c++;
+            // 保存
+            let users = JSON.parse(localStorage.getItem('quiz_users'));
+            users[state.user.name].stats = state.user.stats;
+            localStorage.setItem('quiz_users', JSON.stringify(users));
+        }
+        return { isCorrect, correctAnswers: item.a };
+    });
+    return { score, details };
 }
 
-function closeChoices() {
-    document.getElementById('choices-overlay').style.display = 'none';
+function getRate(id) {
+    if (!state.user || !state.user.stats[id]) return 0;
+    const s = state.user.stats[id];
+    return Math.round((s.c / s.t) * 100);
 }
 
 render();
