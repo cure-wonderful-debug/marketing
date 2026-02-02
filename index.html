@@ -74,13 +74,14 @@ function render() {
     } else if (state.view === 'menu') {
         const hasHistory = state.user && Object.keys(state.user.stats || {}).length > 0;
         app.innerHTML = `<h2>こんにちは、${state.user ? state.user.name : 'ゲスト'}さん</h2>
-            <div class="mode-item"><button class="btn btn-main" onclick="initQuiz('normal')">通常モード (全10問)</button><div class="mode-hint" onclick="openDesc('通常モード','全50問からランダムに10問出題。')">?</div></div>
+            <div class="mode-item"><button class="btn btn-main" onclick="initQuiz('all')">全問挑戦モード (23問)</button><div class="mode-hint" onclick="openDesc('全問挑戦モード','登録されている23問すべてを一気に出題します。')">?</div></div>
+            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('normal')">通常モード (10問)</button><div class="mode-hint" onclick="openDesc('通常モード','全問題からランダムに10問出題。')">?</div></div>
             ${state.user ? `
-            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('untested')">未挑戦モード</button><div class="mode-hint" onclick="openDesc('未挑戦モード','まだ一度も解いたことがない問題のみ。10問未満ならある分だけ出題。')">?</div></div>
+            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('untested')">未挑戦モード</button><div class="mode-hint" onclick="openDesc('未挑戦モード','一度も解いていない問題のみ出題。')">?</div></div>
             ` : ''}
             ${hasHistory ? `
-            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('weak')">苦手克服モード</button><div class="mode-hint" onclick="openDesc('苦手克服モード','正答率が低い順に10問出題。')">?</div></div>
-            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('efficient')">効率学習モード</button><div class="mode-hint" onclick="openDesc('効率学習モード','正答率80%未満の習得していない問題のみ。')">?</div></div>` : ''}
+            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('weak')">苦手克服モード</button><div class="mode-hint" onclick="openDesc('苦手克服モード','正答率が低い順に10問。')">?</div></div>
+            <div class="mode-item"><button class="btn btn-outline" onclick="initQuiz('efficient')">効率学習モード</button><div class="mode-hint" onclick="openDesc('効率学習モード','正答率80%未満の問題のみ。')">?</div></div>` : ''}
             <button class="btn btn-exit" onclick="location.reload()">ログアウト / 終了</button>`;
     } else if (state.view === 'quiz') {
         const item = state.currentQuiz[state.index];
@@ -89,7 +90,7 @@ function render() {
             const val = (state.userChoices[state.index] && state.userChoices[state.index][bIdx]) || "";
             return `<span class="blank-box ${val ? 'filled' : ''}" onclick="openChoices(${bIdx++})">${val || "?"}</span>`;
         });
-        app.innerHTML = `<button class="quit-btn" onclick="confirmQuit()">✕</button><div class="status-header"><span>第 ${state.index + 1} / ${state.currentQuiz.length} 問</span><span>${state.user ? '正答率:' + getRate(item.id) + '%' : ''}</span></div><div class="question-text">${formattedQ}</div><div class="nav-controls"><button class="btn btn-nav" onclick="prev()" ${state.index === 0 ? 'disabled' : ''}>← 前へ</button><button class="btn btn-main btn-nav" onclick="next()">${state.index === state.currentQuiz.length - 1 ? '採点する' : '次へ →'}</button></div>`;
+        app.innerHTML = `<button class="quit-btn" onclick="confirmQuit()">✕</button><div class="status-header"><span>第 ${state.index + 1} / ${state.currentQuiz.length} 問</span><span>${state.user ? '正答率:' + getRate(item.id) + '%' : ''}</span></div><div class="question-text">${formattedQ}</div><div class="nav-controls"><button class="btn btn-nav" onclick="prev()" ${state.index === 0 ? 'disabled' : ''}>← 前へ</button><button class="btn btn-main btn-nav" onclick="next()">${state.index === state.currentQuiz.length - 1 ? '採ationする' : '次へ →'}</button></div>`;
     } else if (state.view === 'result') {
         const res = calculateScore();
         app.innerHTML = `<h2>結果: ${res.score} / ${state.currentQuiz.length}</h2><div style="overflow-y:auto; flex:1; margin-bottom:15px;">${res.details.map((d, i) => `<div style="padding:10px; border-bottom:1px solid #eee; font-size:0.9rem;"><b>問${i+1}:</b> ${d.isCorrect ? '✅' : '❌'}<br><small style="color:var(--gray)">正解: ${d.correctAnswers.join(' / ')}</small></div>`).join('')}</div><button class="btn btn-main" onclick="state.view='menu'; render();">メニューに戻る</button>`;
@@ -99,16 +100,13 @@ function render() {
 function initQuiz(mode) {
     let pool = [...quizData];
     let limit = 10;
-    if (state.user) {
+    if (mode === 'all') { limit = pool.length; } // 全問モード
+    else if (state.user) {
         if (mode === 'untested') {
             pool = pool.filter(item => !state.user.stats[item.id] || state.user.stats[item.id].t === 0);
             if (pool.length === 0) { alert("未挑戦の問題はありません！"); return; }
-        } else if (mode === 'weak') {
-            pool.sort((a,b) => getRate(a.id) - getRate(b.id));
-        } else if (mode === 'efficient') {
-            let f = pool.filter(a => getRate(a.id) < 80);
-            if(f.length >= 5) pool = f;
-        }
+        } else if (mode === 'weak') { pool.sort((a,b) => getRate(a.id) - getRate(b.id)); }
+        else if (mode === 'efficient') { let f = pool.filter(a => getRate(a.id) < 80); if(f.length >= 5) pool = f; }
     }
     state.currentQuiz = pool.sort(() => 0.5 - Math.random()).slice(0, Math.min(pool.length, limit)).map(item => {
         const fixedChoices = item.a.map(correct => {
